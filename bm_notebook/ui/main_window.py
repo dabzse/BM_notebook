@@ -187,9 +187,9 @@ class MainWindow(QMainWindow):
         self._reactive_btn.toggled.connect(self._on_reactive_toggled)
         tb.addWidget(self._reactive_btn)
 
-        spacer = QWidget(self)
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        tb.addWidget(spacer)
+        self._toolbar_spacer = QWidget(self)
+        self._toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        tb.addWidget(self._toolbar_spacer)
 
         tb.addWidget(QLabel("Kernel: ", self))
         self._kernel_combo = QComboBox(self)
