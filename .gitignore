@@ -1,0 +1,6 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+bm_notebook.egg-info/
+build/
+venv/
