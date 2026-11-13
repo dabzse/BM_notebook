@@ -24,6 +24,9 @@ Natív asztali, reaktív, **teljesen JS- és böngészőmentes** Jupyter-kompati
    - `jupyter_client` alapú ZMQ kommunikáció külön háttérszálon (nem akad a UI).
    - Bármely telepített Jupyter kernel kiválasztható.
    - Kernel-alapú `Tab` / `Ctrl+Space` kódkiegészítés, megszakítás (`Ctrl+I`), újraindítás, élő változó-vizsgáló.
+5. **Kétnyelvű felület (Magyar / Angol) és hordozható beállítások**:
+   - Dinamikus nyelvváltás közvetlenül az eszköztárról (`🌐 HU` / `🌐 EN` gomb) alkalmazás-újraindítás nélkül.
+   - Az ablakméret, pozíció, elrendezés, téma (`sötét`/`világos`) és a választott nyelv közvetlenül az alkalmazás melletti `settings.json` fájlba mentődik.
 
 ## Indítás
 

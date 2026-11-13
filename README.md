@@ -24,8 +24,9 @@ Native desktop, reactive, **completely JS- and browser-free** Jupyter-compatible
    - Threaded `jupyter_client` ZMQ communication so the UI never freezes.
    - Switch between any installed Jupyter kernel (`ipykernel`, etc.); standalone release builds also include an embedded Python kernel fallback.
    - Kernel-backed `Tab` / `Ctrl+Space` code completion, interrupt (`Ctrl+I`), restart, and live variable inspector.
-5. **Portable Settings**:
-   - Window size, position, maximized state, splitter layout, inspector visibility, and theme (`dark`/`light`) are saved to a portable `settings.json` directly inside the application folder (next to the executable or project root).
+5. **Bilingual UI (Hungarian / English) & Portable Settings**:
+   - Dynamic runtime language switching directly from the toolbar (`🌐 HU` / `🌐 EN` button) without restarting.
+   - Window size, position, maximized state, splitter layout, inspector visibility, theme (`dark`/`light`), and language preference are saved to a portable `settings.json` directly inside the application folder (next to the executable or project root).
 
 ## Running from Source
 

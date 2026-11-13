@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QSizePolicy, QToolBar
 
+from bm_notebook.i18n import get_current_language, t
 from bm_notebook.kernel import KernelBridge
 from bm_notebook.kernel.manager import ExecutionTask
 from bm_notebook.model import CellState, CellType
@@ -159,8 +160,8 @@ def test_main_window_opens_demo_and_runs_reactive_cascade(qt_app, tmp_path: Path
             if tb.layout():
                 tb.layout().activate()
         qt_app.processEvents()
-        if win._theme_btn.x() > 0:
-            assert win._theme_btn.geometry().right() > 1950
+        if win._lang_btn.x() > 0:
+            assert win._lang_btn.geometry().right() > 1950
             assert win._kernel_combo.x() > win._reactive_btn.geometry().right() + 200
 
         # Verify DataFrame HTML output and matplotlib PNG output rendered
@@ -198,6 +199,7 @@ def test_portable_settings_persisted_and_restored(qt_app, tmp_path: Path, monkey
         win1.show()
         win1.resize(1860, 1020)
         win1._toggle_theme()
+        win1.set_language("en")
         win1._inspector_btn.setChecked(False)
         qt_app.processEvents()
     finally:
@@ -210,7 +212,63 @@ def test_portable_settings_persisted_and_restored(qt_app, tmp_path: Path, monkey
         assert win2.width() == 1860
         assert win2.height() == 1020
         assert win2._palette.name == "light"
+        assert win2._current_language == "en"
+        assert win2._new_act.text() == "New"
+        assert win2._lang_btn.text() == "🌐 EN"
         assert win2._inspector_btn.isChecked() is False
         assert win2._inspector.isHidden() is True
     finally:
         win2.close()
+
+
+def test_i18n_translation_catalog_and_dynamic_switching(qt_app, tmp_path: Path):
+    # 1. Translation catalog tests
+    assert t("action_new", "hu") == "Új"
+    assert t("action_new", "en") == "New"
+    assert t("status_code_cells", "hu", mode="Reaktív", code_count=1, total_count=2, extra="") == (
+        "Reaktív • 1/2 kód cella"
+    )
+    assert t("status_code_cells", "en", mode="Reactive", code_count=1, total_count=2, extra="") == (
+        "Reactive • 1/2 code cells"
+    )
+    assert t("non_existent_key_xyz", "hu") == "non_existent_key_xyz"
+
+    # 2. Window dynamic switching tests
+    settings_file = tmp_path / "i18n_settings.json"
+    win = MainWindow(settings_path=settings_file)
+    try:
+        # Initial language is Hungarian
+        assert win._current_language == "hu"
+        assert get_current_language() == "hu"
+        assert win._new_act.text() == "Új"
+        assert win._open_act.text() == "Megnyitás"
+        assert win._save_act.text() == "Mentés"
+        assert win._run_stale_btn.text() == "▶ Elavultak"
+        assert win._run_all_btn.text() == "▶▶ Mind futtatása"
+        assert win._lang_btn.text() == "🌐 HU"
+        assert win._inspector._tabs.tabText(0) == "Reaktív Gráf"
+        assert win._inspector._tabs.tabText(1) == "Változók"
+
+        # Toggle to English
+        win._toggle_language()
+        assert win._current_language == "en"
+        assert get_current_language() == "en"
+        assert win._new_act.text() == "New"
+        assert win._open_act.text() == "Open"
+        assert win._save_act.text() == "Save"
+        assert win._run_stale_btn.text() == "▶ Stale"
+        assert win._run_all_btn.text() == "▶▶ Run All"
+        assert win._lang_btn.text() == "🌐 EN"
+        assert win._inspector._tabs.tabText(0) == "Reactive Graph"
+        assert win._inspector._tabs.tabText(1) == "Variables"
+
+        # Toggle back to Hungarian
+        win._toggle_language()
+        assert win._current_language == "hu"
+        assert get_current_language() == "hu"
+        assert win._new_act.text() == "Új"
+        assert win._open_act.text() == "Megnyitás"
+        assert win._lang_btn.text() == "🌐 HU"
+        assert win._inspector._tabs.tabText(0) == "Reaktív Gráf"
+    finally:
+        win.close()

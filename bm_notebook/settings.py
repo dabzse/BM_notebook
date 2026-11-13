@@ -90,6 +90,7 @@ class AppSettings:
     splitter_sizes: list[int] = field(default_factory=lambda: list(DEFAULT_SPLITTER_SIZES))
     inspector_visible: bool = True
     theme: str = "dark"
+    language: str = "hu"
 
 
 def load_settings(path: Path) -> AppSettings:
@@ -107,6 +108,8 @@ def load_settings(path: Path) -> AppSettings:
 
     theme_raw = raw.get("theme")
     theme = theme_raw if theme_raw in {"dark", "light"} else "dark"
+    lang_raw = raw.get("language")
+    language = lang_raw if lang_raw in {"hu", "en"} else "hu"
     return AppSettings(
         window_width=_pos_int(raw.get("window_width"), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_WIDTH),
         window_height=_pos_int(raw.get("window_height"), 1, DEFAULT_WINDOW_HEIGHT),
@@ -116,6 +119,7 @@ def load_settings(path: Path) -> AppSettings:
         splitter_sizes=_coerce_splitter_sizes(raw.get("splitter_sizes")),
         inspector_visible=bool(raw.get("inspector_visible", True)),
         theme=theme,
+        language=language,
     )
 
 

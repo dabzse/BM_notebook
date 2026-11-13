@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bm_notebook.i18n import t
 from bm_notebook.model import Cell, CellState, CellType
 from bm_notebook.reactive import DependencyGraph
 
@@ -200,10 +201,12 @@ class DagView(QGraphicsView):
             defs_preview = ", ".join(sorted(cell.defs)[:_MAX_NODE_DEFS]) or "(no defs)"
             if len(cell.defs) > _MAX_NODE_DEFS:
                 defs_preview += "…"
+            node_idx = cell_num_map.get(cell.id, 0)
+            node_title = f"{t('dag_node_title', index=node_idx)} [{cell.state.value.upper()}]"
             spec = _DagNodeSpec(
                 cell_id=cell.id,
                 rect=positions[cell.id],
-                title=f"Cell #{cell_num_map.get(cell.id, 0)} [{cell.state.value.upper()}]",
+                title=node_title,
                 subtitle=defs_preview,
                 border_color=self._border_color_for_state(cell.state),
             )
@@ -229,13 +232,15 @@ class InspectorPanel(QWidget):
     def __init__(self, palette: ThemePalette, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._palette = palette
+        self._last_cells: list[Cell] | None = None
+        self._last_graph: DependencyGraph | None = None
         self.setMinimumWidth(290)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(6)
 
-        self._summary_lbl = QLabel("Reaktív DAG • 0 cella")
+        self._summary_lbl = QLabel(t("inspector_summary", code_count=0, edge_count=0, suffix=""))
         layout.addWidget(self._summary_lbl)
 
         self._tabs = QTabWidget(self)
@@ -243,7 +248,12 @@ class InspectorPanel(QWidget):
         self._dag_view.cell_clicked.connect(self.cell_selected.emit)
 
         self._var_table = QTableWidget(0, 4, self)
-        self._var_table.setHorizontalHeaderLabels(["Név", "Típus", "Érték / Méret", "Cella"])
+        self._var_table.setHorizontalHeaderLabels([
+            t("inspector_col_name"),
+            t("inspector_col_type"),
+            t("inspector_col_value"),
+            t("inspector_col_cell"),
+        ])
         self._var_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self._var_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self._var_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -252,11 +262,25 @@ class InspectorPanel(QWidget):
         self._var_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._var_table.verticalHeader().setVisible(False)
 
-        self._tabs.addTab(self._dag_view, "Reaktív Gráf")
-        self._tabs.addTab(self._var_table, "Változók")
+        self._tabs.addTab(self._dag_view, t("inspector_tab_graph"))
+        self._tabs.addTab(self._var_table, t("inspector_tab_vars"))
         layout.addWidget(self._tabs)
 
         self.apply_palette(palette)
+
+    def retranslate_ui(self) -> None:
+        self._tabs.setTabText(0, t("inspector_tab_graph"))
+        self._tabs.setTabText(1, t("inspector_tab_vars"))
+        self._var_table.setHorizontalHeaderLabels([
+            t("inspector_col_name"),
+            t("inspector_col_type"),
+            t("inspector_col_value"),
+            t("inspector_col_cell"),
+        ])
+        if self._last_cells is not None and self._last_graph is not None:
+            self.refresh_graph(self._last_cells, self._last_graph)
+        else:
+            self._summary_lbl.setText(t("inspector_summary", code_count=0, edge_count=0, suffix=""))
 
     def apply_palette(self, palette: ThemePalette) -> None:
         self._palette = palette
@@ -266,15 +290,19 @@ class InspectorPanel(QWidget):
         self._dag_view.apply_palette(palette)
 
     def refresh_graph(self, cells: list[Cell], graph: DependencyGraph) -> None:
+        self._last_cells = cells
+        self._last_graph = graph
         code_count = sum(1 for c in cells if c.cell_type == CellType.CODE)
         edge_count = sum(len(v) for v in graph.edges.values())
         warn_parts: list[str] = []
         if graph.conflicts:
-            warn_parts.append(f"{len(graph.conflicts)} ütközés")
+            warn_parts.append(t("inspector_warn_conflict", count=len(graph.conflicts)))
         if graph.cycles:
-            warn_parts.append(f"{len(graph.cycles)} ciklus")
+            warn_parts.append(t("inspector_warn_cycle", count=len(graph.cycles)))
         suffix = f" • ⚠ {', '.join(warn_parts)}" if warn_parts else ""
-        self._summary_lbl.setText(f"Reaktív DAG • {code_count} kód cella • {edge_count} él{suffix}")
+        self._summary_lbl.setText(
+            t("inspector_summary", code_count=code_count, edge_count=edge_count, suffix=suffix)
+        )
         self._dag_view.update_graph(cells, graph)
 
     def update_variables(

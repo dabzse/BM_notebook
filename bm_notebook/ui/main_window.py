@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from bm_notebook.format_bm import load_notebook, save_ipynb, save_notebook
+from bm_notebook.i18n import set_current_language, t
 from bm_notebook.kernel import KernelBridge, KernelSpecInfo, discover_kernelspecs
 from bm_notebook.kernel.manager import ExecutionTask
 from bm_notebook.model import Cell, CellOutput, CellState, CellType, NotebookDocument
@@ -47,8 +48,6 @@ from .cell_widget import CellWidget
 from .inspector_panel import InspectorPanel
 from .theme import DARK_THEME, LIGHT_THEME, ThemePalette, build_stylesheet
 
-_REACTIVE_ON_LABEL = "⚡ Reaktív: BE"
-_REACTIVE_OFF_LABEL = "⚡ Reaktív: KI"
 _EXT_IPYNB = ".ipynb"
 _EXT_BM_MD = ".bm.md"
 _EXT_MD = ".md"
@@ -71,6 +70,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._settings_path: Path = resolve_settings_path(settings_path)
         self._settings: AppSettings = load_settings(self._settings_path)
+        self._current_language = self._settings.language
+        set_current_language(self._current_language)
         self._restoring_settings = True
         self._palette: ThemePalette = LIGHT_THEME if self._settings.theme == "light" else DARK_THEME
         self._save_settings_timer = QTimer(self)
@@ -117,73 +118,73 @@ class MainWindow(QMainWindow):
         self._update_window_title()
 
     def _build_toolbar(self) -> None:
-        tb = QToolBar("Fő eszköztár", self)
-        tb.setMovable(False)
-        self.addToolBar(tb)
+        self._tb = QToolBar(t("toolbar_title"), self)
+        self._tb.setMovable(False)
+        self.addToolBar(self._tb)
 
-        self._new_act = QAction("Új", self)
+        self._new_act = QAction(t("action_new"), self)
         self._new_act.setShortcut(QKeySequence.StandardKey.New)
         self._new_act.triggered.connect(self.new_notebook)
-        tb.addAction(self._new_act)
+        self._tb.addAction(self._new_act)
 
-        self._open_act = QAction("Megnyitás", self)
+        self._open_act = QAction(t("action_open"), self)
         self._open_act.setShortcut(QKeySequence.StandardKey.Open)
         self._open_act.triggered.connect(self.open_dialog)
-        tb.addAction(self._open_act)
+        self._tb.addAction(self._open_act)
 
-        self._save_act = QAction("Mentés", self)
+        self._save_act = QAction(t("action_save"), self)
         self._save_act.setShortcut(QKeySequence.StandardKey.Save)
         self._save_act.triggered.connect(self.save_current)
-        tb.addAction(self._save_act)
+        self._tb.addAction(self._save_act)
 
-        self._export_act = QAction("Export .ipynb", self)
+        self._export_act = QAction(t("action_export"), self)
         self._export_act.triggered.connect(self.export_ipynb_dialog)
-        tb.addAction(self._export_act)
+        self._tb.addAction(self._export_act)
 
-        tb.addSeparator()
+        self._tb.addSeparator()
 
-        add_py_btn = QPushButton("+ Python", self)
-        add_py_btn.clicked.connect(lambda: self.insert_cell_near_active(CellType.CODE))
-        tb.addWidget(add_py_btn)
+        self._add_py_btn = QPushButton(t("btn_add_python"), self)
+        self._add_py_btn.clicked.connect(lambda: self.insert_cell_near_active(CellType.CODE))
+        self._tb.addWidget(self._add_py_btn)
 
-        add_md_btn = QPushButton("+ Markdown", self)
-        add_md_btn.clicked.connect(lambda: self.insert_cell_near_active(CellType.MARKDOWN))
-        tb.addWidget(add_md_btn)
+        self._add_md_btn = QPushButton(t("btn_add_markdown"), self)
+        self._add_md_btn.clicked.connect(lambda: self.insert_cell_near_active(CellType.MARKDOWN))
+        self._tb.addWidget(self._add_md_btn)
 
-        tb.addSeparator()
-        self._add_execution_toolbar_controls(tb)
-        tb.addSeparator()
-        self._add_view_toolbar_controls(tb)
+        self._tb.addSeparator()
+        self._add_execution_toolbar_controls(self._tb)
+        self._tb.addSeparator()
+        self._add_view_toolbar_controls(self._tb)
 
     def _add_execution_toolbar_controls(self, tb: QToolBar) -> None:
-        self._run_stale_btn = QPushButton("▶ Elavultak", self)
-        self._run_stale_btn.setToolTip("Függőben lévő (STALE / IDLE) cellák futtatása topologikus sorrendben")
+        self._run_stale_btn = QPushButton(t("btn_run_stale"), self)
+        self._run_stale_btn.setToolTip(t("tooltip_run_stale"))
         self._run_stale_btn.clicked.connect(self.run_stale_cells)
         tb.addWidget(self._run_stale_btn)
 
-        self._run_all_btn = QPushButton("▶▶ Mind futtatása", self)
+        self._run_all_btn = QPushButton(t("btn_run_all"), self)
         self._run_all_btn.setObjectName("PrimaryBtn")
         self._run_all_btn.setShortcut(QKeySequence("F5"))
-        self._run_all_btn.setToolTip("Teljes notebook futtatása topologikus sorrendben (F5 / Ctrl+R)")
+        self._run_all_btn.setToolTip(t("tooltip_run_all"))
         self._run_all_btn.clicked.connect(self.run_all_cells)
         self._run_all_shortcut_alt = QShortcut(QKeySequence("Ctrl+R"), self)
         self._run_all_shortcut_alt.activated.connect(self.run_all_cells)
         tb.addWidget(self._run_all_btn)
 
-        self._interrupt_btn = QPushButton("■ Megszakítás", self)
+        self._interrupt_btn = QPushButton(t("btn_interrupt"), self)
         self._interrupt_btn.setShortcut(QKeySequence("Ctrl+I"))
         self._interrupt_btn.clicked.connect(self._kernel.interrupt_kernel)
         tb.addWidget(self._interrupt_btn)
 
-        self._restart_btn = QPushButton("↻ Újraindítás", self)
+        self._restart_btn = QPushButton(t("btn_restart"), self)
         self._restart_btn.clicked.connect(self.restart_and_run_prompt)
         tb.addWidget(self._restart_btn)
 
     def _add_view_toolbar_controls(self, tb: QToolBar) -> None:
-        self._reactive_btn = QPushButton(_REACTIVE_ON_LABEL, self)
+        self._reactive_btn = QPushButton(t("reactive_on"), self)
         self._reactive_btn.setCheckable(True)
         self._reactive_btn.setChecked(True)
-        self._reactive_btn.setToolTip("Automatikus függőségi kaszkád cella futtatáskor")
+        self._reactive_btn.setToolTip(t("tooltip_reactive"))
         self._reactive_btn.toggled.connect(self._on_reactive_toggled)
         tb.addWidget(self._reactive_btn)
 
@@ -191,23 +192,30 @@ class MainWindow(QMainWindow):
         self._toolbar_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         tb.addWidget(self._toolbar_spacer)
 
-        tb.addWidget(QLabel("Kernel: ", self))
+        self._kernel_lbl = QLabel(t("lbl_kernel"), self)
+        tb.addWidget(self._kernel_lbl)
         self._kernel_combo = QComboBox(self)
         for spec in self._kernelspecs:
             self._kernel_combo.addItem(f"{spec.display_name} ({spec.name})", spec)
         self._kernel_combo.currentIndexChanged.connect(self._on_kernel_combo_changed)
         tb.addWidget(self._kernel_combo)
 
-        self._inspector_btn = QPushButton("Gráf / Változók", self)
+        self._inspector_btn = QPushButton(t("btn_inspector"), self)
         self._inspector_btn.setCheckable(True)
         self._inspector_btn.setChecked(True)
         self._inspector_btn.setShortcut(QKeySequence("Ctrl+B"))
+        self._inspector_btn.setToolTip(t("tooltip_inspector"))
         self._inspector_btn.toggled.connect(self._toggle_inspector)
         tb.addWidget(self._inspector_btn)
 
-        self._theme_btn = QPushButton("☀/🌙 Téma", self)
+        self._theme_btn = QPushButton(t("btn_theme"), self)
         self._theme_btn.clicked.connect(self._toggle_theme)
         tb.addWidget(self._theme_btn)
+
+        self._lang_btn = QPushButton(t("btn_lang"), self)
+        self._lang_btn.setToolTip(t("tooltip_lang"))
+        self._lang_btn.clicked.connect(self._toggle_language)
+        tb.addWidget(self._lang_btn)
 
     def _build_central_splitter(self) -> None:
         self._splitter = QSplitter(Qt.Orientation.Horizontal, self)
@@ -236,7 +244,7 @@ class MainWindow(QMainWindow):
     def _build_statusbar(self) -> None:
         sb = QStatusBar(self)
         self.setStatusBar(sb)
-        self._status_kernel_lbl = QLabel("Kernel: indítás…", self)
+        self._status_kernel_lbl = QLabel(f"{t('lbl_kernel')}{t('kernel_starting')}", self)
         self._status_info_lbl = QLabel("", self)
         sb.addWidget(self._status_kernel_lbl)
         sb.addPermanentWidget(self._status_info_lbl)
@@ -288,6 +296,7 @@ class MainWindow(QMainWindow):
             self._settings.splitter_sizes = sizes
         self._settings.inspector_visible = self._inspector_btn.isChecked()
         self._settings.theme = self._palette.name
+        self._settings.language = self._current_language
 
     def _schedule_settings_save(self) -> None:
         if not self._restoring_settings:
@@ -320,12 +329,64 @@ class MainWindow(QMainWindow):
         self._apply_theme(new_theme)
         self._schedule_settings_save()
 
+    def set_language(self, lang: str) -> None:
+        """Switch active language ('hu' or 'en') and dynamically retranslate the UI."""
+        if lang not in ("hu", "en") or lang == self._current_language:
+            return
+        self._current_language = lang
+        set_current_language(lang)
+        self._retranslate_ui()
+        self._schedule_settings_save()
+
+    def _toggle_language(self) -> None:
+        """Toggle between Hungarian and English."""
+        target = "en" if self._current_language == "hu" else "hu"
+        self.set_language(target)
+
+    def _retranslate_ui(self) -> None:
+        """Dynamically update all visible text in toolbars, inspectors, and cells."""
+        self._tb.setWindowTitle(t("toolbar_title"))
+        self._new_act.setText(t("action_new"))
+        self._open_act.setText(t("action_open"))
+        self._save_act.setText(t("action_save"))
+        self._export_act.setText(t("action_export"))
+        self._add_py_btn.setText(t("btn_add_python"))
+        self._add_md_btn.setText(t("btn_add_markdown"))
+
+        self._run_stale_btn.setText(t("btn_run_stale"))
+        self._run_stale_btn.setToolTip(t("tooltip_run_stale"))
+        self._run_all_btn.setText(t("btn_run_all"))
+        self._run_all_btn.setToolTip(t("tooltip_run_all"))
+        self._interrupt_btn.setText(t("btn_interrupt"))
+        self._restart_btn.setText(t("btn_restart"))
+
+        self._reactive_btn.setText(t("reactive_on") if self._doc.reactive_mode else t("reactive_off"))
+        self._reactive_btn.setToolTip(t("tooltip_reactive"))
+        self._kernel_lbl.setText(t("lbl_kernel"))
+        self._inspector_btn.setText(t("btn_inspector"))
+        self._inspector_btn.setToolTip(t("tooltip_inspector"))
+        self._theme_btn.setText(t("btn_theme"))
+        self._lang_btn.setText(t("btn_lang"))
+        self._lang_btn.setToolTip(t("tooltip_lang"))
+
+        self._inspector.retranslate_ui()
+        for cw in self._cell_widgets.values():
+            cw.retranslate_ui()
+
+        self._update_window_title()
+        self._update_status_summary()
+
     def _toggle_inspector(self, visible: bool) -> None:
         self._inspector.setVisible(visible)
         self._schedule_settings_save()
 
     def _update_window_title(self) -> None:
-        name = Path(self._doc.file_path).name if self._doc.file_path else self._doc.title
+        if self._doc.file_path:
+            name = Path(self._doc.file_path).name
+        elif self._doc.title == "Untitled":
+            name = t("untitled_doc")
+        else:
+            name = self._doc.title
         star = " *" if self._modified else ""
         self.setWindowTitle(f"{name}{star} — BM::Notebook")
 
@@ -357,7 +418,7 @@ class MainWindow(QMainWindow):
 
     def _on_reactive_toggled(self, checked: bool) -> None:
         self._doc.reactive_mode = checked
-        self._reactive_btn.setText(_REACTIVE_ON_LABEL if checked else _REACTIVE_OFF_LABEL)
+        self._reactive_btn.setText(t("reactive_on") if checked else t("reactive_off"))
         self._modified = True
         self._update_window_title()
         self._update_status_summary()
@@ -433,16 +494,18 @@ class MainWindow(QMainWindow):
         total = len(self._doc.cells)
         code_n = sum(1 for c in self._doc.cells if c.cell_type == CellType.CODE)
         stale_n = sum(1 for c in self._doc.cells if c.state == CellState.STALE)
-        mode = "Reaktív DAG" if self._doc.reactive_mode else "Manuális"
+        mode = t("status_mode_reactive") if self._doc.reactive_mode else t("status_mode_manual")
         extras: list[str] = []
         if stale_n:
-            extras.append(f"{stale_n} elavult")
+            extras.append(t("status_extra_stale", count=stale_n).lstrip(", "))
         if self._graph.conflicts:
-            extras.append(f"{len(self._graph.conflicts)} névütközés")
+            extras.append(t("status_extra_conflicts", count=len(self._graph.conflicts)).lstrip(", "))
         if self._graph.cycles:
-            extras.append(f"{len(self._graph.cycles)} ciklus")
+            extras.append(t("status_extra_cycles", count=len(self._graph.cycles)).lstrip(", "))
         ext_txt = f" | ⚠ {', '.join(extras)}" if extras else ""
-        self._status_info_lbl.setText(f"{mode} • {code_n}/{total} kód cella{ext_txt}")
+        self._status_info_lbl.setText(
+            t("status_code_cells", mode=mode, code_count=code_n, total_count=total, extra=ext_txt)
+        )
 
     def _on_cell_source_changed(self, cell_id: str, _new_source: str) -> None:
         self._modified = True
@@ -544,9 +607,8 @@ class MainWindow(QMainWindow):
         if plan.blocked_by_cycle and cell_id in plan.blocked_by_cycle:
             QMessageBox.warning(
                 self,
-                "Függőségi ciklus",
-                "A cella kölcsönös (ciklikus) változó-függőségben van más cellákkal. "
-                "Szüntesd meg a ciklust a reaktív futtatáshoz.",
+                t("warn_cycle_title"),
+                t("warn_cycle_msg"),
             )
             return
 
@@ -589,8 +651,8 @@ class MainWindow(QMainWindow):
         if plan.blocked_by_cycle:
             QMessageBox.warning(
                 self,
-                "Függőségi ciklus észlelve",
-                "Néhány cella függőségi ciklusban van, ezek kihagyásra kerülnek.",
+                t("warn_cycle_detected_title"),
+                t("warn_cycle_detected_msg"),
             )
         self._enqueue_plan(plan.order)
 
@@ -607,19 +669,20 @@ class MainWindow(QMainWindow):
     # --- Kernel signal handlers ---
 
     def _on_kernel_started(self, kname: str, _lang: str) -> None:
-        self._status_kernel_lbl.setText(f"Kernel: {kname} • Kész")
+        self._status_kernel_lbl.setText(f"{t('lbl_kernel')}{kname} • {t('kernel_ready')}")
 
     def _on_kernel_status(self, status: str) -> None:
         labels = {
-            "starting": "Indítás…",
-            "idle": "Kész (Idle)",
-            "busy": "Fut (Busy)",
-            "dead": "Leállt",
+            "starting": t("kernel_status_starting"),
+            "idle": t("kernel_status_idle"),
+            "busy": t("kernel_status_busy"),
+            "dead": t("kernel_status_dead"),
         }
-        self._status_kernel_lbl.setText(f"Kernel: {self._kernel.kernel_name} • {labels.get(status, status)}")
+        status_label = labels.get(status, status)
+        self._status_kernel_lbl.setText(f"{t('lbl_kernel')}{self._kernel.kernel_name} • {status_label}")
 
     def _on_kernel_error(self, message: str) -> None:
-        self._status_kernel_lbl.setText(f"Kernel hiba: {message}")
+        self._status_kernel_lbl.setText(t("kernel_error_prefix", message=message))
 
     def _on_cell_started(self, cell_id: str) -> None:
         cell = self._doc.get_cell(cell_id)
@@ -711,9 +774,9 @@ class MainWindow(QMainWindow):
     def open_dialog(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Notebook megnyitása",
+            t("dialog_open_title"),
             str(Path.cwd()),
-            "BM & Jupyter Notebooks (*.bm.md *.md *.ipynb);;Minden fájl (*)",
+            t("dialog_open_filter"),
         )
         if path:
             self.open_file(path)
@@ -722,7 +785,7 @@ class MainWindow(QMainWindow):
         try:
             doc = load_notebook(path)
         except Exception as exc:
-            QMessageBox.critical(self, "Megnyitási hiba", f"Nem sikerült megnyitni:\n{exc}")
+            QMessageBox.critical(self, t("error_open_title"), t("error_open_msg", error=str(exc)))
             return
 
         self._doc = doc
@@ -730,7 +793,7 @@ class MainWindow(QMainWindow):
         self._last_vars = []
         self._reactive_btn.blockSignals(True)
         self._reactive_btn.setChecked(doc.reactive_mode)
-        self._reactive_btn.setText(_REACTIVE_ON_LABEL if doc.reactive_mode else _REACTIVE_OFF_LABEL)
+        self._reactive_btn.setText(t("reactive_on") if doc.reactive_mode else t("reactive_off"))
         self._reactive_btn.blockSignals(False)
 
         self._select_kernel_in_combo(doc.kernel_name)
@@ -748,15 +811,15 @@ class MainWindow(QMainWindow):
             self._modified = False
             self._update_window_title()
         except Exception as exc:
-            QMessageBox.critical(self, "Mentési hiba", f"Nem sikerült menteni:\n{exc}")
+            QMessageBox.critical(self, t("error_save_title"), t("error_save_msg", error=str(exc)))
 
     def save_as_dialog(self) -> None:
         default_name = f"{self._doc.title}{_EXT_BM_MD}"
         path, _ = QFileDialog.getSaveFileName(
             self,
-            "Notebook mentése",
+            t("dialog_save_title"),
             str(Path.cwd() / default_name),
-            f"BM Markdown Notebook (*{_EXT_BM_MD});;Jupyter Notebook (*{_EXT_IPYNB})",
+            t("dialog_save_filter"),
         )
         if not path:
             return
@@ -767,15 +830,15 @@ class MainWindow(QMainWindow):
             self._modified = False
             self._update_window_title()
         except Exception as exc:
-            QMessageBox.critical(self, "Mentési hiba", f"Nem sikerült menteni:\n{exc}")
+            QMessageBox.critical(self, t("error_save_title"), t("error_save_msg", error=str(exc)))
 
     def export_ipynb_dialog(self) -> None:
         stem = Path(self._doc.file_path).stem.removesuffix(".bm") if self._doc.file_path else self._doc.title
         path, _ = QFileDialog.getSaveFileName(
             self,
-            f"Exportálás Jupyter ({_EXT_IPYNB}) formátumba",
+            t("dialog_export_title"),
             str(Path.cwd() / f"{stem}{_EXT_IPYNB}"),
-            f"Jupyter Notebook (*{_EXT_IPYNB})",
+            t("dialog_export_filter"),
         )
         if not path:
             return
@@ -784,7 +847,7 @@ class MainWindow(QMainWindow):
         try:
             save_ipynb(self._doc, path)
         except Exception as exc:
-            QMessageBox.critical(self, "Export hiba", f"Nem sikerült exportálni:\n{exc}")
+            QMessageBox.critical(self, t("error_export_title"), t("error_export_msg", error=str(exc)))
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._save_settings_timer.stop()

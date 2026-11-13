@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bm_notebook.i18n import t
 from bm_notebook.model import Cell, CellOutput, CellState, CellType
 
 from .code_editor import CodeEditor
@@ -97,7 +98,7 @@ class CellWidget(QFrame):
         self._index_lbl = QLabel(f"#{index + 1}")
         self._type_btn = QPushButton("PY" if cell.cell_type == CellType.CODE else "MD")
         self._type_btn.setFixedHeight(22)
-        self._type_btn.setToolTip("Váltás Python / Markdown cella között")
+        self._type_btn.setToolTip(t("tooltip_cell_type"))
         self._type_btn.clicked.connect(lambda: self.type_toggle_requested.emit(self.cell_id))
 
         self._exec_lbl = QLabel("[ ]")
@@ -107,27 +108,27 @@ class CellWidget(QFrame):
 
         self._run_btn = QPushButton("▶")
         self._run_btn.setFixedSize(26, 22)
-        self._run_btn.setToolTip("Futtatás + reaktív kaszkád (Shift+Enter)")
+        self._run_btn.setToolTip(t("tooltip_cell_run"))
         self._run_btn.clicked.connect(lambda: self.run_requested.emit(self.cell_id, False, False))
 
         self._up_btn = QPushButton("▲")
         self._up_btn.setFixedSize(24, 22)
-        self._up_btn.setToolTip("Cella feljebb")
+        self._up_btn.setToolTip(t("tooltip_cell_up"))
         self._up_btn.clicked.connect(lambda: self.move_requested.emit(self.cell_id, -1))
 
         self._down_btn = QPushButton("▼")
         self._down_btn.setFixedSize(24, 22)
-        self._down_btn.setToolTip("Cella lejjebb")
+        self._down_btn.setToolTip(t("tooltip_cell_down"))
         self._down_btn.clicked.connect(lambda: self.move_requested.emit(self.cell_id, 1))
 
         self._collapse_btn = QPushButton("▾")
         self._collapse_btn.setFixedSize(24, 22)
-        self._collapse_btn.setToolTip("Kimenet összecsukása / kinyitása")
+        self._collapse_btn.setToolTip(t("tooltip_cell_collapse"))
         self._collapse_btn.clicked.connect(self._toggle_collapse)
 
         self._del_btn = QPushButton("✕")
         self._del_btn.setFixedSize(24, 22)
-        self._del_btn.setToolTip("Cella törlése")
+        self._del_btn.setToolTip(t("tooltip_cell_delete"))
         self._del_btn.clicked.connect(lambda: self.delete_requested.emit(self.cell_id))
 
         for w in (
@@ -347,6 +348,15 @@ class CellWidget(QFrame):
             parts.append(f"← {refs_s}")
         self._deps_lbl.setText("   |   ".join(parts))
 
+    def retranslate_ui(self) -> None:
+        self._type_btn.setToolTip(t("tooltip_cell_type"))
+        self._run_btn.setToolTip(t("tooltip_cell_run"))
+        self._up_btn.setToolTip(t("tooltip_cell_up"))
+        self._down_btn.setToolTip(t("tooltip_cell_down"))
+        self._collapse_btn.setToolTip(t("tooltip_cell_collapse"))
+        self._del_btn.setToolTip(t("tooltip_cell_delete"))
+        self._update_warnings()
+
     def _update_warnings(self) -> None:
         msgs: list[str] = []
         if self._cell.syntax_error:
@@ -355,7 +365,7 @@ class CellWidget(QFrame):
             msgs.append(f"⟲ {self._cell.cycle_info}")
         if self._cell.conflict_symbols:
             syms = ", ".join(sorted(self._cell.conflict_symbols))
-            msgs.append(f"⚠ Több cellában definiált szimbólum(ok): {syms}")
+            msgs.append(t("cell_conflict_warning", syms=syms))
         if msgs:
             self._warning_lbl.setText("\n".join(msgs))
             self._warning_lbl.setVisible(True)
