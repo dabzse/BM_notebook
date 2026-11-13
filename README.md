@@ -7,6 +7,8 @@
 
 Native desktop, reactive, **completely JS- and browser-free** Jupyter-compatible notebook IDE built on **Python + Qt6 (PySide6)**.
 
+![BM::Codium Preview](assets/BM_notebook.png)
+
 ## Why BM::Notebook?
 
 1. **Zero JS / Zero Electron / Zero WebEngine**: Every surface (code editor, syntax highlighting, Markdown preview, tables, charts, reactive DAG graph) renders with native C++/Qt6 widgets.

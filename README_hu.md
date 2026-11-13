@@ -7,6 +7,8 @@
 
 Natív asztali, reaktív, **teljesen JS- és böngészőmentes** Jupyter-kompatibilis notebook IDE **Python + Qt6 (PySide6)** alapon.
 
+![BM::Codium Preview](assets/BM_notebook.png)
+
 ## Mitől jobb, mint a klasszikus böngészős Jupyter?
 
 1. **Nulla JS / nulla Electron / nulla WebEngine**: Minden felület (kódszerkesztő, szintaxiskiemelés, Markdown előnézet, táblázatok, grafikonok, reaktív DAG gráf) natív C++/Qt6 widgetekkel renderelődik.
