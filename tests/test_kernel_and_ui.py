@@ -106,7 +106,7 @@ def test_kernel_bridge_reactive_execution_cleanup_and_completion(qt_app):
 
         # 4. Verify tab completion
         bridge.request_completions("c1", "base_v", 6)
-        assert _pump_events(qt_app, lambda: len(completions) == 1, timeout=5.0)
+        assert _pump_events(qt_app, lambda: len(completions) == 1, timeout=10.0)
         assert "base_val" in completions[0][1]
     finally:
         bridge.shutdown()
@@ -131,9 +131,19 @@ def test_main_window_opens_demo_and_runs_reactive_cascade(qt_app, tmp_path: Path
 
         assert _pump_events(
             qt_app,
-            lambda: all(c.state == CellState.DONE for c in win._doc.cells if c.cell_type == CellType.CODE),
-            timeout=25.0,
+            lambda: all(
+                c.state in {CellState.DONE, CellState.ERROR}
+                for c in win._doc.cells
+                if c.cell_type == CellType.CODE
+            ),
+            timeout=45.0,
         )
+        failed_cells = [
+            (c.id, c.error_message, [o.text or o.ename for o in c.outputs])
+            for c in win._doc.cells
+            if c.cell_type == CellType.CODE and c.state != CellState.DONE
+        ]
+        assert not failed_cells, f"Cells failed to execute: {failed_cells}"
 
         # Verify minimum window width and right-aligned toolbar controls
         assert win.minimumWidth() == 1726

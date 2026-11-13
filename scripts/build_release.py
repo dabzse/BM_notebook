@@ -76,8 +76,7 @@ def _run_pyinstaller(dist_dir: Path, work_dir: Path) -> None:
 
 
 def _copy_extras(bundle_dir: Path, include_examples: bool = True) -> None:
-    if not bundle_dir.is_dir():
-        return
+    bundle_dir.mkdir(parents=True, exist_ok=True)
     for filename in ("LICENSE", "README.md", "README_hu.md"):
         src = ROOT / filename
         if src.is_file():

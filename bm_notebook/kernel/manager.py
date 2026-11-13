@@ -505,12 +505,14 @@ class KernelBridge(QObject):
             ok, exec_count, err_msg = False, None, str(exc)
         return ok, exec_count, (time.perf_counter() - t0) * 1000.0, err_msg
 
-    def _complete_sync(self, cell_id: str, code: str, cursor_pos: int) -> None:
+    def _complete_sync(
+        self, cell_id: str, code: str, cursor_pos: int, timeout: float = 5.0
+    ) -> None:
         if self._kc is None:
             return
         try:
             msg_id = self._kc.complete(code, cursor_pos)
-            deadline = time.monotonic() + 0.8
+            deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
                 reply = self._next_complete_reply(self._kc)
                 if reply is not None and reply.get("parent_header", {}).get("msg_id") == msg_id:

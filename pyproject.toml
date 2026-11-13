@@ -18,6 +18,14 @@ dependencies = [
 [project.scripts]
 bm-notebook = "bm_notebook.app:main"
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+]
+
 [tool.setuptools.packages.find]
 include = ["bm_notebook*"]
 
