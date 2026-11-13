@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bm-notebook"
-version = "1.0.0"
+version = "1.0.1"
 description = "Native, reactive, JS-free Jupyter-compatible notebook IDE powered by Qt6 (PySide6) and Python AST DAG execution"
 readme = "README.md"
 requires-python = ">=3.10"

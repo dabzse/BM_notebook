@@ -7,21 +7,22 @@ on:
 
 jobs:
   test:
-    name: Test (${{ matrix.os }})
+    name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-22.04, windows-2022, macos-14]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: "pip"
 
       - name: Install Linux Qt runtime dependencies
@@ -38,7 +39,7 @@ jobs:
           python -m pip install -e .[test] ruff
 
       - name: Lint with Ruff
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.python-version == '3.12'
         run: ruff check bm_notebook tests scripts
 
       - name: Run pytest
